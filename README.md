@@ -1,1 +1,3 @@
 # VyperExamples
+
+Curve bug examples: CurveBugExample/add_liquidity_test_to_add_liquidity_test2_equivalence.conf
