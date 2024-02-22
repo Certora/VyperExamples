@@ -14,6 +14,8 @@ ghost mapping(uint => bool) killedFlagB;
 
 // update first-time reads
 hook ALL_SLOAD(uint loc) uint value {
+    uint dummy = require_uint256(to_mathint(loc));
+	assert dummy >= 0;
    if(executingContract == currentContract && !killedFlagA[loc]) {
        require contractAState[loc] == value;
    } else if(executingContract == B && !killedFlagB[loc]) {
@@ -23,6 +25,8 @@ hook ALL_SLOAD(uint loc) uint value {
 
 // update writes
 hook ALL_SSTORE(uint loc, uint value) {
+    uint dummy = require_uint256(to_mathint(loc));
+	assert dummy >= 0;
    if(executingContract == currentContract) {
       killedFlagA[loc] = true;
    } else if(executingContract == B) {
@@ -56,36 +60,34 @@ rule equivalence_of_revert_conditions()
 {
     storage init = lastStorage;
     assume_equivalent_states();
-    bool add_liquidity_test_revert;
-    bool add_liquidity_test2_revert;
+    bool remove_liquidity_test_revert;
+    bool remove_liquidity_test2_revert;
     // using this as opposed to generating input parameters is experimental
-    env e_add_liquidity_test; calldataarg args;
-    env e_add_liquidity_test2;
-    e_equivalence(e_add_liquidity_test, e_add_liquidity_test2);
+    env e_remove_liquidity_test; calldataarg args;
+    env e_remove_liquidity_test2;
+    e_equivalence(e_remove_liquidity_test, e_remove_liquidity_test2);
 
-    add_liquidity@withrevert(e_add_liquidity_test, args);
-    add_liquidity_test_revert = lastReverted;
+    remove_liquidity@withrevert(e_remove_liquidity_test, args);
+    remove_liquidity_test_revert = lastReverted;
 
-    B.add_liquidity@withrevert(e_add_liquidity_test2, args) at init;
-    add_liquidity_test2_revert = lastReverted;
+    B.remove_liquidity@withrevert(e_remove_liquidity_test2, args) at init;
+    remove_liquidity_test2_revert = lastReverted;
 
-    assert(add_liquidity_test_revert == add_liquidity_test2_revert);
+    assert(remove_liquidity_test_revert == remove_liquidity_test2_revert);
 }
 
-rule equivalence_of_return_value()
+rule equivalnce_of_storage()
 {
+    env e;
+    calldataarg args;
     storage init = lastStorage;
     assume_equivalent_states();
-    bool add_liquidity_test_bool_out0;
-    bool add_liquidity_test2_bool_out0;
 
-    env e_add_liquidity_test; calldataarg args;
-    env e_add_liquidity_test2;
+    remove_liquidity(e, args) at init;
+    storage s1 = lastStorage;
 
-    e_equivalence(e_add_liquidity_test, e_add_liquidity_test2);
+    remove_liquidity(e, args) at init;
+    storage s2 = lastStorage;
 
-    add_liquidity_test_bool_out0 = add_liquidity(e_add_liquidity_test, args);
-    add_liquidity_test2_bool_out0 = B.add_liquidity(e_add_liquidity_test2, args) at init;
-
-    assert(add_liquidity_test_bool_out0 == add_liquidity_test2_bool_out0);
+    assert s1 == s2;
 }
